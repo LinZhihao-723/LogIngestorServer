@@ -6,4 +6,6 @@ edition = "2024"
 [dependencies]
 actix-web = "4.11.0"
 actix-web-httpauth = "0.8"
+flexi_logger = "0.29"
+log = "0.4"
 secrecy = { version = "0.8", features = ["serde"] }
