@@ -20,4 +20,12 @@ impl JobParams {
     pub fn get_key_prefix(&self) -> &str {
         &self.key_prefix
     }
+
+    pub fn clone(&self) -> Self {
+        Self {
+            region: self.region.clone(),
+            bucket: self.bucket.clone(),
+            key_prefix: self.key_prefix.clone(),
+        }
+    }
 }
