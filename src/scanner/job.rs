@@ -11,25 +11,34 @@ pub struct Job {
     handle: JoinHandle<()>,
 }
 
+#[derive(Debug)]
+struct ParsedFile {
+    pub bucket: String,
+    pub key: String,
+    pub size: usize,
+}
+
 async fn list_bucket_with_prefix(
     client: &Client,
     bucket: &str,
     prefix: &str,
-) -> Result<(Vec<String>, bool), aws_sdk_s3::Error> {
+    start_after: &Option<String>,
+) -> Result<(Vec<ParsedFile>, bool), aws_sdk_s3::Error> {
     let mut keys = Vec::new();
 
-    let resp = client
+    let mut resp_handler = client
         .list_objects_v2()
         .bucket(bucket)
         .prefix(prefix)
-        .send()
-        .await?;
+        .set_start_after(start_after.clone())
+        .send();
+
+    let resp = resp_handler.await?;
 
     if let Some(contents) = resp.contents {
         for object in contents {
-            match object.key {
-                Some(key) => keys.push(key),
-                None => continue,
+            if let (Some(key), Some(size)) = (object.key, object.size) {
+                keys.push(ParsedFile::new(bucket.to_string(), key, size as usize));
             }
         }
     }
@@ -48,18 +57,29 @@ async fn list_bucket_with_prefix(
 }
 
 async fn execute(client: Client, params: JobParams) -> Result<(), aws_sdk_s3::Error> {
-    let mut key_prefix = params.get_key_prefix().to_owned();
+    let mut start_after: Option<String> = None;
     loop {
-        let (keys, is_truncated) =
-            list_bucket_with_prefix(&client, params.get_bucket(), &key_prefix).await?;
-        if keys.is_empty() {
-            log::info!("No objects found with prefix: {}", key_prefix);
+        let (parsed_files, is_truncated) = list_bucket_with_prefix(
+            &client,
+            params.get_bucket(),
+            params.get_key_prefix(),
+            &start_after,
+        )
+        .await?;
+        if parsed_files.is_empty() {
+            log::info!("No objects found with prefix: {}.", params.get_key_prefix());
         } else {
-            key_prefix = keys.last().unwrap().to_owned();
-            for key in &keys {
-                log::info!("Found object key: {}", key);
-            }
+            log::info!(
+                "Found {} objects with prefix: {}",
+                parsed_files.len(),
+                params.get_key_prefix()
+            );
         }
+        for parsed_file in &parsed_files {
+            log::info!("Found file: {:?}", parsed_file);
+            start_after = Some(parsed_file.key.clone());
+        }
+        log::info!("Last ingested key: {:?}", start_after);
         if is_truncated {
             // Don't sleep. Restart next iteration immediately to handle more keys.
             continue;
@@ -85,5 +105,11 @@ impl Job {
 
     pub fn get_id(&self) -> uuid::Uuid {
         self.id
+    }
+}
+
+impl ParsedFile {
+    pub fn new(bucket: String, key: String, size: usize) -> Self {
+        Self { bucket, key, size }
     }
 }
