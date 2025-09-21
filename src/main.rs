@@ -1,3 +1,4 @@
+mod buffering;
 mod scanner;
 
 use actix_web::{App, HttpResponse, HttpServer, Responder, get, web};
@@ -5,6 +6,7 @@ use actix_web_httpauth::extractors::basic::BasicAuth;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 
+use buffering::{Buffer, Listener};
 use dashmap::DashMap;
 use flexi_logger::{Cleanup, Criterion, Duplicate, FileSpec, Logger, Naming};
 use scanner::{Job, JobParams, create_s3_client};
@@ -12,12 +14,17 @@ use uuid::Uuid;
 
 struct JobTable {
     jobs: DashMap<Uuid, Job>,
+
+    // TODO: Create a listener table
+    listener: Listener,
 }
 
 impl JobTable {
     fn new() -> Self {
+        let buffer = Buffer::new(1024 * 1024 * 1024);
         Self {
             jobs: DashMap::new(),
+            listener: Listener::spawn(buffer, std::time::Duration::from_secs(60), 100),
         }
     }
 }
@@ -38,7 +45,11 @@ async fn create_scanner_job(
     let secret_access_key = SecretString::from(auth.password().unwrap_or("").to_owned());
 
     let client = create_s3_client(&access_key_id, &secret_access_key, query.get_region()).await;
-    let job = Job::new(client, query.into_inner().clone());
+    let job = Job::spawn(
+        client,
+        query.into_inner().clone(),
+        job_table.listener.get_new_sender(),
+    );
 
     let id = job.get_id();
     job_table.jobs.insert(id, job);
@@ -49,6 +60,7 @@ async fn create_scanner_job(
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // TODO: Handle logger initialization errors
+    // TODO: Make the logger async friendly: consider using https://docs.rs/tracing/latest/tracing/
     Logger::try_with_env_or_str("info")
         .unwrap()
         .log_to_file(
@@ -72,8 +84,7 @@ async fn main() -> std::io::Result<()> {
 
     let job_table = web::Data::new(JobTable::new());
 
-    // IMPORTANT: serve behind HTTPS (TLS termination at a proxy),
-    // or configure Rustls on HttpServer (not shown here to keep it short).
+    // TODO: serve behind HTTPS (TLS termination at a proxy) or configure Rustls on HttpServer.
     HttpServer::new(move || {
         App::new()
             .app_data(job_table.clone())

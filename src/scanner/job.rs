@@ -1,11 +1,13 @@
+use super::ScannedObject;
 use crate::scanner::JobParams;
 use crate::scanner::utils::create_s3_client;
 use actix_web::mime::Params;
+use anyhow::Result;
 use aws_sdk_s3::Client;
 use secrecy::SecretString;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::Sender;
 use tokio::{task::JoinHandle, time::sleep};
-
-use super::ScannedObject;
 
 pub struct Job {
     params: JobParams,
@@ -18,7 +20,7 @@ async fn list_bucket_with_prefix(
     bucket: &str,
     prefix: &str,
     start_after: &Option<String>,
-) -> Result<(Vec<ScannedObject>, bool), aws_sdk_s3::Error> {
+) -> Result<(Vec<ScannedObject>, bool)> {
     let mut scanned_objects = Vec::new();
 
     let resp_handler = client
@@ -51,7 +53,7 @@ async fn list_bucket_with_prefix(
     }
 }
 
-async fn execute(client: Client, params: JobParams) -> Result<(), aws_sdk_s3::Error> {
+async fn execute(client: Client, params: JobParams, sender: Sender<ScannedObject>) -> Result<()> {
     let mut start_after: Option<String> = None;
     loop {
         let (scanned_objects, is_truncated) = list_bucket_with_prefix(
@@ -70,9 +72,10 @@ async fn execute(client: Client, params: JobParams) -> Result<(), aws_sdk_s3::Er
                 params.get_key_prefix()
             );
         }
-        for scanned_object in &scanned_objects {
+        for scanned_object in scanned_objects {
             log::info!("Found file: {:?}", scanned_object);
             start_after = Some(scanned_object.get_key().to_owned());
+            sender.send(scanned_object).await?;
         }
         log::info!("Last ingested key: {:?}", start_after);
         if is_truncated {
@@ -86,10 +89,10 @@ async fn execute(client: Client, params: JobParams) -> Result<(), aws_sdk_s3::Er
 }
 
 impl Job {
-    pub fn new(client: Client, params: JobParams) -> Self {
+    pub fn spawn(client: Client, params: JobParams, sender: mpsc::Sender<ScannedObject>) -> Self {
         let execution_param = params.clone();
         let handle = tokio::spawn(async move {
-            if let Err(e) = execute(client, execution_param).await {
+            if let Err(e) = execute(client, execution_param, sender).await {
                 log::error!("Job execution failed: {}", e);
             }
         });

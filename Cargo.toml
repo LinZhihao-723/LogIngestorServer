@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.100"
 actix-web = "4.11.0"
 actix-web-httpauth = "0.8"
 aws-config = "1.5.16"
