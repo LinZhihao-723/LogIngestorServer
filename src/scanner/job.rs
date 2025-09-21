@@ -5,17 +5,12 @@ use aws_sdk_s3::Client;
 use secrecy::SecretString;
 use tokio::{task::JoinHandle, time::sleep};
 
+use super::ScannedObject;
+
 pub struct Job {
     params: JobParams,
     id: uuid::Uuid,
     handle: JoinHandle<()>,
-}
-
-#[derive(Debug)]
-struct ParsedFile {
-    pub bucket: String,
-    pub key: String,
-    pub size: usize,
 }
 
 async fn list_bucket_with_prefix(
@@ -23,10 +18,10 @@ async fn list_bucket_with_prefix(
     bucket: &str,
     prefix: &str,
     start_after: &Option<String>,
-) -> Result<(Vec<ParsedFile>, bool), aws_sdk_s3::Error> {
-    let mut keys = Vec::new();
+) -> Result<(Vec<ScannedObject>, bool), aws_sdk_s3::Error> {
+    let mut scanned_objects = Vec::new();
 
-    let mut resp_handler = client
+    let resp_handler = client
         .list_objects_v2()
         .bucket(bucket)
         .prefix(prefix)
@@ -38,7 +33,7 @@ async fn list_bucket_with_prefix(
     if let Some(contents) = resp.contents {
         for object in contents {
             if let (Some(key), Some(size)) = (object.key, object.size) {
-                keys.push(ParsedFile::new(bucket.to_string(), key, size as usize));
+                scanned_objects.push(ScannedObject::new(bucket.to_string(), key, size as usize));
             }
         }
     }
@@ -50,38 +45,40 @@ async fn list_bucket_with_prefix(
                     "Response is truncated. Followings keys will be handled in the next request."
                 );
             }
-            Ok((keys, is_truncated))
+            Ok((scanned_objects, is_truncated))
         }
-        None => Ok((keys, false)),
+        None => Ok((scanned_objects, false)),
     }
 }
 
 async fn execute(client: Client, params: JobParams) -> Result<(), aws_sdk_s3::Error> {
     let mut start_after: Option<String> = None;
     loop {
-        let (parsed_files, is_truncated) = list_bucket_with_prefix(
+        let (scanned_objects, is_truncated) = list_bucket_with_prefix(
             &client,
             params.get_bucket(),
             params.get_key_prefix(),
             &start_after,
         )
         .await?;
-        if parsed_files.is_empty() {
+        if scanned_objects.is_empty() {
             log::info!("No objects found with prefix: {}.", params.get_key_prefix());
         } else {
             log::info!(
                 "Found {} objects with prefix: {}",
-                parsed_files.len(),
+                scanned_objects.len(),
                 params.get_key_prefix()
             );
         }
-        for parsed_file in &parsed_files {
-            log::info!("Found file: {:?}", parsed_file);
-            start_after = Some(parsed_file.key.clone());
+        for scanned_object in &scanned_objects {
+            log::info!("Found file: {:?}", scanned_object);
+            start_after = Some(scanned_object.get_key().to_owned());
         }
         log::info!("Last ingested key: {:?}", start_after);
         if is_truncated {
-            // Don't sleep. Restart next iteration immediately to handle more keys.
+            // Don't sleep. Restart the next iteration immediately to handle more keys.
+            // TODO:
+            // Use continuation token instead of start_after for better performance and lower cost.
             continue;
         }
         sleep(std::time::Duration::from_secs(30)).await;
@@ -105,11 +102,5 @@ impl Job {
 
     pub fn get_id(&self) -> uuid::Uuid {
         self.id
-    }
-}
-
-impl ParsedFile {
-    pub fn new(bucket: String, key: String, size: usize) -> Self {
-        Self { bucket, key, size }
     }
 }
