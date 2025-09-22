@@ -81,8 +81,8 @@ impl Buffer {
                     target_segment_size: 268_435_456,
                 },
             };
-            // TODO: This should only for debugging purpose, otherwise it will print credentials in the
-            // logs.
+            // TODO: This should only for debugging purpose, otherwise it will print credentials in
+            // the logs.
             log::debug!(
                 "[{}] Job config created: {:?}",
                 self.buffer_tag.as_str(),
