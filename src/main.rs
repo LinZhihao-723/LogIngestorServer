@@ -21,7 +21,7 @@ struct JobTable {
 
 impl JobTable {
     fn new() -> Self {
-        let buffer = Buffer::new(1024 * 1024 * 1024);
+        let buffer = Buffer::new(1024 * 1024 * 10);
         Self {
             jobs: DashMap::new(),
             listener: Listener::spawn(buffer, std::time::Duration::from_secs(60), 100),
@@ -57,6 +57,37 @@ async fn create_scanner_job(
     HttpResponse::Ok().body(id.to_string())
 }
 
+#[derive(Deserialize)]
+struct JobIdQuery {
+    job_id: String,
+}
+
+#[get("/delete")]
+async fn delete_scanner_job(
+    job_table: web::Data<JobTable>,
+    query: web::Query<JobIdQuery>,
+) -> impl Responder {
+    let job_id = match Uuid::parse_str(&query.job_id) {
+        Ok(id) => id,
+        Err(_) => {
+            log::warn!("Invalid job_id format: {}", query.job_id);
+            return HttpResponse::BadRequest().body("Invalid job_id format");
+        }
+    };
+
+    match job_table.jobs.remove(&job_id) {
+        Some((_, job)) => {
+            job.cancel();
+            log::info!("Job {} cancelled and removed.", job_id);
+            HttpResponse::Ok().body(format!("Job {} deleted", job_id))
+        }
+        None => {
+            log::warn!("Job {} not found for deletion.", job_id);
+            HttpResponse::NotFound().body("Job not found")
+        }
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // TODO: Handle logger initialization errors
@@ -89,6 +120,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(job_table.clone())
             .service(create_scanner_job)
+            .service(delete_scanner_job)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

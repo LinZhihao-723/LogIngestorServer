@@ -103,6 +103,10 @@ impl Job {
         }
     }
 
+    pub fn cancel(&self) {
+        self.handle.abort();
+    }
+
     pub fn get_id(&self) -> uuid::Uuid {
         self.id
     }
