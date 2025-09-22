@@ -89,7 +89,7 @@ async fn execute(client: Client, params: JobParams, sender: Sender<ScannedObject
 }
 
 impl Job {
-    pub fn spawn(client: Client, params: JobParams, sender: mpsc::Sender<ScannedObject>) -> Self {
+    pub fn spawn(client: Client, params: JobParams, sender: Sender<ScannedObject>) -> Self {
         let execution_param = params.clone();
         let handle = tokio::spawn(async move {
             if let Err(e) = execute(client, execution_param, sender).await {

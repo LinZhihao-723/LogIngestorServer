@@ -1,4 +1,5 @@
 use super::Buffer;
+use super::ListenerKey;
 use crate::scanner::ScannedObject;
 use anyhow::Result;
 use std::pin::Pin;
@@ -7,6 +8,12 @@ use tokio::select;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio::time::{Instant, Sleep, sleep_until};
+
+pub struct Listener {
+    sender: mpsc::Sender<ScannedObject>,
+    timeout: Duration,
+    handle: JoinHandle<()>,
+}
 
 async fn listen(
     mut receiver: mpsc::Receiver<ScannedObject>,
@@ -43,20 +50,21 @@ async fn listen(
     }
 }
 
-pub struct Listener {
-    sender: mpsc::Sender<ScannedObject>,
-    timeout: Duration,
-    handle: JoinHandle<()>,
-}
-
 impl Listener {
-    pub fn spawn(buffer: Buffer, timeout: Duration, channel_size: usize) -> Self {
+    pub fn spawn(
+        listener_key: ListenerKey,
+        timeout: Duration,
+        channel_size: usize,
+        buffer_size: usize,
+    ) -> Self {
         let (sender, receiver) = mpsc::channel(channel_size);
         Self {
             sender,
             timeout,
             handle: tokio::spawn(async move {
-                if let Err(e) = listen(receiver, buffer, timeout).await {
+                if let Err(e) =
+                    listen(receiver, Buffer::new(listener_key, buffer_size), timeout).await
+                {
                     log::error!("Listener encountered an error: {:?}", e);
                 }
             }),

@@ -13,7 +13,8 @@ use flexi_logger::{Cleanup, Criterion, Duplicate, FileSpec, Logger, Naming};
 use scanner::{Job, JobParams, create_s3_client};
 use uuid::Uuid;
 
-use service::scanner::{JobTable, create_scanner_job, delete_scanner_job};
+use service::ScannerServiceManager;
+use service::scanner::{create_scanner_job, delete_scanner_job};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -23,7 +24,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap()
         .log_to_file(
             FileSpec::default()
-                .directory("logs")
+                .directory(".logs")
                 .basename("server")
                 .suffix("log"),
         )
@@ -40,12 +41,16 @@ async fn main() -> std::io::Result<()> {
 
     log::info!("Starting server.");
 
-    let job_table = web::Data::new(JobTable::new());
+    let scanner_service_manager = web::Data::new(ScannerServiceManager::new(
+        100,                                // listener channel size
+        std::time::Duration::from_secs(60), // listener channel timeout
+        10 * 1024 * 1024,                   // buffer size (bytes)
+    ));
 
     // TODO: serve behind HTTPS (TLS termination at a proxy) or configure Rustls on HttpServer.
     HttpServer::new(move || {
         App::new()
-            .app_data(job_table.clone())
+            .app_data(scanner_service_manager.clone())
             .service(create_scanner_job)
             .service(delete_scanner_job)
     })
