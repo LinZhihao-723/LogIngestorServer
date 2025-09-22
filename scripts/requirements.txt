@@ -1,0 +1,3 @@
+boto3>=1.40.36
+clp-ffi-py>=0.0.14
+zstandard>=0.25.0
