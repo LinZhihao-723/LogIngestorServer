@@ -1,4 +1,5 @@
 use super::ListenerKey;
+use crate::compression::config::{AwsAuthentication, AwsCredentials, Input, JobConfig, Output};
 use crate::scanner::ScannedObject;
 use anyhow::Result;
 
@@ -14,7 +15,7 @@ impl Buffer {
     pub fn new(listener_key: ListenerKey, size_threshold: usize) -> Self {
         let buffer_tag = format!(
             "{}-{}",
-            listener_key.get_dataset().unwrap_or("all"),
+            listener_key.get_dataset().unwrap_or("default"),
             listener_key.get_access_key_id()
         );
         Self {
@@ -50,6 +51,45 @@ impl Buffer {
             self.buffered_objects.len(),
             self.total_buffered_size
         );
+
+        for obj in &self.buffered_objects {
+            let job_config = JobConfig {
+                input: Input {
+                    aws_authentication: AwsAuthentication::Credentials {
+                        credentials: AwsCredentials {
+                            access_key_id: self.listener_key.get_access_key_id().to_string(),
+                            secret_access_key: self
+                                .listener_key
+                                .get_secret_access_key()
+                                .to_string(),
+                        },
+                    },
+                    bucket: obj.get_bucket().to_string(),
+                    dataset: self
+                        .listener_key
+                        .get_dataset()
+                        .unwrap_or("default")
+                        .to_string(),
+                    key_prefix: obj.get_key().to_string(),
+                    region_code: self.listener_key.get_region().to_string(),
+                },
+                output: Output {
+                    compression_level: 3,
+                    target_archive_size: 268_435_456,
+                    target_dictionaries_size: 33_554_432,
+                    target_encoded_file_size: 268_435_456,
+                    target_segment_size: 268_435_456,
+                },
+            };
+            // TODO: This should only for debugging purpose, otherwise it will print credentials in the
+            // logs.
+            log::debug!(
+                "[{}] Job config created: {:?}",
+                self.buffer_tag.as_str(),
+                job_config
+            );
+        }
+
         log::info!(
             "[{}] Flushing objects:\n{}",
             self.buffer_tag.as_str(),

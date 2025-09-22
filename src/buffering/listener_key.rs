@@ -1,14 +1,21 @@
 #[derive(Clone, Hash, Eq, PartialEq)]
 pub struct ListenerKey {
     dataset: Option<String>,
+    region: String,
     access_key_id: String,
     secret_access_key: String,
 }
 
 impl ListenerKey {
-    pub fn new(dataset: Option<String>, access_key_id: String, secret_access_key: String) -> Self {
+    pub fn new(
+        dataset: Option<String>,
+        region: String,
+        access_key_id: String,
+        secret_access_key: String,
+    ) -> Self {
         Self {
             dataset,
+            region,
             access_key_id,
             secret_access_key,
         }
@@ -16,6 +23,10 @@ impl ListenerKey {
 
     pub fn get_dataset(&self) -> Option<&str> {
         self.dataset.as_deref()
+    }
+
+    pub fn get_region(&self) -> &str {
+        &self.region
     }
 
     pub fn get_access_key_id(&self) -> &str {

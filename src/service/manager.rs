@@ -37,6 +37,7 @@ impl ScannerServiceManager {
 
         let listener_key = ListenerKey::new(
             job_params.get_dataset().map(|s| s.to_string()),
+            job_params.get_region().to_string(),
             access_key_id.clone(),
             secret_access_key.expose_secret().clone(),
         );

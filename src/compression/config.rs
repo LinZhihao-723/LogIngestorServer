@@ -31,7 +31,7 @@ pub struct AwsCredentials {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-struct Output {
+pub struct Output {
     pub compression_level: u8,
     pub target_archive_size: u64,
     pub target_dictionaries_size: u64,

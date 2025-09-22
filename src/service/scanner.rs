@@ -31,7 +31,7 @@ pub async fn delete_scanner_job(
     query: web::Query<JobIdQuery>,
 ) -> impl Responder {
     match service_mgr.delete_job(query.job_id.as_str()).await {
-        Ok(id) => HttpResponse::Ok().body(format!("Deleted job: {}", query.job_id)),
+        Ok(_) => HttpResponse::Ok().body(format!("Deleted job: {}", query.job_id)),
         Err(e) => HttpResponse::BadRequest().body(format!("Error: {}", e)),
     }
 }
