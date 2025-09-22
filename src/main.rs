@@ -1,4 +1,5 @@
 mod buffering;
+mod compression;
 mod scanner;
 mod service;
 

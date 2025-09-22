@@ -9,9 +9,12 @@ actix-web = "4.11.0"
 actix-web-httpauth = "0.8"
 aws-config = "1.5.16"
 aws-sdk-s3 = "1.74.0"
+brotli = "8.0.2"
 dashmap = "5.4.0"
 flexi_logger = "0.29"
+hex = "0.4"
 log = "0.4"
+rmp-serde = "1.3.0"
 serde = "1.0.217"
 secrecy = { version = "0.8", features = ["serde"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
