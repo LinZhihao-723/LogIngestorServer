@@ -1,11 +1,7 @@
 use super::ScannedObject;
 use crate::scanner::JobParams;
-use crate::scanner::utils::create_s3_client;
-use actix_web::mime::Params;
 use anyhow::Result;
 use aws_sdk_s3::Client;
-use secrecy::SecretString;
-use tokio::sync::mpsc;
 use tokio::sync::mpsc::Sender;
 use tokio::{task::JoinHandle, time::sleep};
 

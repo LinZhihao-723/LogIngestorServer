@@ -1,12 +1,10 @@
-use crate::buffering::{Buffer, Listener, ListenerKey};
+use crate::buffering::{Listener, ListenerKey};
 use crate::scanner::{Job, JobParams, create_s3_client};
-use actix_web::{HttpResponse, web};
 use actix_web_httpauth::extractors::basic::BasicAuth;
 use anyhow::{Result, anyhow};
 use dashmap::DashMap;
 use secrecy::{ExposeSecret, SecretString};
 use std::time::Duration;
-use tokio::sync::mpsc;
 use uuid::Uuid;
 
 pub struct ScannerServiceManager {

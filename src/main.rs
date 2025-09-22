@@ -2,16 +2,9 @@ mod buffering;
 mod scanner;
 mod service;
 
-use actix_web::{App, HttpResponse, HttpServer, Responder, get, web};
-use actix_web_httpauth::extractors::basic::BasicAuth;
-use secrecy::{ExposeSecret, SecretString};
-use serde::Deserialize;
+use actix_web::{App, HttpServer, web};
 
-use buffering::{Buffer, Listener};
-use dashmap::DashMap;
 use flexi_logger::{Cleanup, Criterion, Duplicate, FileSpec, Logger, Naming};
-use scanner::{Job, JobParams, create_s3_client};
-use uuid::Uuid;
 
 use service::ScannerServiceManager;
 use service::scanner::{create_scanner_job, delete_scanner_job};

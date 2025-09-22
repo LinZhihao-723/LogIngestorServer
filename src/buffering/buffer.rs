@@ -1,4 +1,4 @@
-use super::{Listener, ListenerKey};
+use super::ListenerKey;
 use crate::scanner::ScannedObject;
 use anyhow::Result;
 

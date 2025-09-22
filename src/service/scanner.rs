@@ -1,13 +1,8 @@
 use super::manager::ScannerServiceManager;
-use crate::buffering::{Buffer, Listener};
-use crate::scanner::{Job, JobParams, create_s3_client};
+use crate::scanner::JobParams;
 use actix_web::{HttpResponse, Responder, get, web};
 use actix_web_httpauth::extractors::basic::BasicAuth;
-use dashmap::DashMap;
-use secrecy::SecretString;
 use serde::Deserialize;
-use std::fmt::format;
-use uuid::Uuid;
 
 #[get("/create")]
 pub async fn create_scanner_job(
