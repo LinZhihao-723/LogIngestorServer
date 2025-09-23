@@ -1,5 +1,6 @@
 use super::ListenerKey;
 use crate::compression::config::{AwsAuthentication, AwsCredentials, Input, JobConfig, Output};
+use crate::compression::submit_compression_job;
 use crate::scanner::ScannedObject;
 use anyhow::Result;
 
@@ -81,13 +82,24 @@ impl Buffer {
                     target_segment_size: 268_435_456,
                 },
             };
-            // TODO: This should only for debugging purpose, otherwise it will print credentials in
-            // the logs.
-            log::debug!(
-                "[{}] Job config created: {:?}",
-                self.buffer_tag.as_str(),
-                job_config
-            );
+            match submit_compression_job(job_config).await {
+                Ok(compression_job_id) => {
+                    log::info!(
+                        "[{}] Submitted compression job {} for object {:?}.",
+                        self.buffer_tag.as_str(),
+                        compression_job_id,
+                        obj
+                    );
+                }
+                Err(e) => {
+                    log::error!(
+                        "[{}] Failed to submit compression job for object {:?}: {}",
+                        self.buffer_tag.as_str(),
+                        obj,
+                        e
+                    );
+                }
+            }
         }
 
         log::info!(
