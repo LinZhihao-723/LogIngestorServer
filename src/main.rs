@@ -1,14 +1,22 @@
 mod buffering;
 mod compression;
+mod database;
 mod scanner;
 mod service;
 
 use actix_web::{App, HttpServer, web};
+use clap::Parser;
 
 use flexi_logger::{Cleanup, Criterion, Duplicate, FileSpec, Logger, Naming};
 
 use service::ScannerServiceManager;
 use service::scanner::{create_scanner_job, delete_scanner_job};
+
+#[derive(Parser)]
+struct Args {
+    #[clap(long)]
+    db_url: String,
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -35,6 +43,21 @@ async fn main() -> std::io::Result<()> {
 
     log::info!("Starting server.");
 
+    let args = Args::parse();
+
+    // Initialize database connection
+    match database::mysql::init(&args.db_url).await {
+        Ok(_) => log::info!("Database initialized successfully."),
+        Err(e) => {
+            log::error!("Failed to initialize database: {}. Url: {}", e, args.db_url);
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Database init failed.",
+            ));
+        }
+    }
+
+    // Initialize service manager
     let scanner_service_manager = web::Data::new(ScannerServiceManager::new(
         100,                                // listener channel size
         std::time::Duration::from_secs(60), // listener channel timeout
