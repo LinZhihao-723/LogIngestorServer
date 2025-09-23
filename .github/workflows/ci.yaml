@@ -22,9 +22,7 @@ jobs:
       - name: "Install nightly (fmt + clippy)"
         uses: "dtolnay/rust-toolchain@nightly"
         with:
-          components:
-            - "rustfmt"
-            - "clippy"
+          components: rustfmt, clippy
 
       - name: "Install stable"
         uses: "dtolnay/rust-toolchain@stable"
