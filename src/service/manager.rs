@@ -1,11 +1,15 @@
-use crate::buffering::{Listener, ListenerKey};
-use crate::scanner::{Job, JobParams, create_s3_client};
+use std::time::Duration;
+
 use actix_web_httpauth::extractors::basic::BasicAuth;
 use anyhow::{Result, anyhow};
 use dashmap::DashMap;
 use secrecy::{ExposeSecret, SecretString};
-use std::time::Duration;
 use uuid::Uuid;
+
+use crate::{
+    buffering::{Listener, ListenerKey},
+    scanner::{Job, JobParams, create_s3_client},
+};
 
 pub struct ScannerServiceManager {
     job_table: DashMap<Uuid, Job>,

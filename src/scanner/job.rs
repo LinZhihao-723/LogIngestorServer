@@ -1,9 +1,9 @@
-use super::ScannedObject;
-use crate::scanner::JobParams;
 use anyhow::Result;
 use aws_sdk_s3::Client;
-use tokio::sync::mpsc::Sender;
-use tokio::{task::JoinHandle, time::sleep};
+use tokio::{sync::mpsc::Sender, task::JoinHandle, time::sleep};
+
+use super::ScannedObject;
+use crate::scanner::JobParams;
 
 pub struct Job {
     params: JobParams,

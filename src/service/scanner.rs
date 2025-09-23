@@ -1,8 +1,9 @@
-use super::manager::ScannerServiceManager;
-use crate::scanner::JobParams;
 use actix_web::{HttpResponse, Responder, get, web};
 use actix_web_httpauth::extractors::basic::BasicAuth;
 use serde::Deserialize;
+
+use super::manager::ScannerServiceManager;
+use crate::scanner::JobParams;
 
 #[get("/create")]
 pub async fn create_scanner_job(

@@ -1,8 +1,13 @@
-use super::ListenerKey;
-use crate::compression::config::{AwsAuthentication, AwsCredentials, Input, JobConfig, Output};
-use crate::compression::submit_compression_job;
-use crate::scanner::ScannedObject;
 use anyhow::Result;
+
+use super::ListenerKey;
+use crate::{
+    compression::{
+        config::{AwsAuthentication, AwsCredentials, Input, JobConfig, Output},
+        submit_compression_job,
+    },
+    scanner::ScannedObject,
+};
 
 pub struct Buffer {
     buffer_tag: String,

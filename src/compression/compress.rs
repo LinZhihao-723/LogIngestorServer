@@ -1,5 +1,6 @@
-use super::config::JobConfig;
 use anyhow::Result;
+
+use super::config::JobConfig;
 
 pub async fn submit_compression_job(job_config: JobConfig) -> Result<u64> {
     let pool = crate::database::mysql::get_pool();

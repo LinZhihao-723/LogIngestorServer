@@ -6,11 +6,11 @@ mod service;
 
 use actix_web::{App, HttpServer, web};
 use clap::Parser;
-
 use flexi_logger::{Cleanup, Criterion, Duplicate, FileSpec, Logger, Naming};
-
-use service::ScannerServiceManager;
-use service::scanner::{create_scanner_job, delete_scanner_job};
+use service::{
+    ScannerServiceManager,
+    scanner::{create_scanner_job, delete_scanner_job},
+};
 
 #[derive(Parser)]
 struct Args {

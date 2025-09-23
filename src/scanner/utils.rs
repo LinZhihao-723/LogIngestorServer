@@ -1,6 +1,8 @@
 use aws_config::BehaviorVersion;
-use aws_sdk_s3::Client;
-use aws_sdk_s3::config::{Builder, Credentials, Region};
+use aws_sdk_s3::{
+    Client,
+    config::{Builder, Credentials, Region},
+};
 use secrecy::{ExposeSecret, SecretString};
 
 pub async fn create_s3_client(

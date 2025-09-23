@@ -1,13 +1,15 @@
-use super::Buffer;
-use super::ListenerKey;
-use crate::scanner::ScannedObject;
+use std::{pin::Pin, time::Duration};
+
 use anyhow::Result;
-use std::pin::Pin;
-use std::time::Duration;
-use tokio::select;
-use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
-use tokio::time::{Instant, Sleep, sleep_until};
+use tokio::{
+    select,
+    sync::mpsc,
+    task::JoinHandle,
+    time::{Instant, Sleep, sleep_until},
+};
+
+use super::{Buffer, ListenerKey};
+use crate::scanner::ScannedObject;
 
 pub struct Listener {
     sender: mpsc::Sender<ScannedObject>,
