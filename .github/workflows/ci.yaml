@@ -1,0 +1,42 @@
+name: "CI"
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: "${{github.workflow}}-${{github.ref}}"
+  # Cancel in-progress jobs for efficiency
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+    runs-on: "${{matrix.os}}"
+    steps:
+      - uses: "actions/checkout@v4"
+
+      - name: "Install nightly (fmt + clippy)"
+        uses: "dtolnay/rust-toolchain@nightly"
+        with:
+          components:
+            - "rustfmt"
+            - "clippy"
+
+      - name: "Install stable"
+        uses: "dtolnay/rust-toolchain@stable"
+
+      - name: "Linting: fmt"
+        run: cargo +nightly fmt --all -- --check
+
+      - name: "Linting: clippy"
+        run: cargo +nightly clippy --workspace --all-targets
+
+      - name: "Build"
+        run: cargo build --release
+
+      - name: "Test"
+        run: cargo test --all --release
