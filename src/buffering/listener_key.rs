@@ -7,7 +7,7 @@ pub struct ListenerKey {
 }
 
 impl ListenerKey {
-    pub fn new(
+    pub const fn new(
         dataset: Option<String>,
         region: String,
         access_key_id: String,

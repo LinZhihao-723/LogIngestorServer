@@ -6,7 +6,6 @@ use super::ScannedObject;
 use crate::scanner::JobParams;
 
 pub struct Job {
-    params: JobParams,
     id: uuid::Uuid,
     handle: JoinHandle<()>,
 }
@@ -15,7 +14,7 @@ async fn list_bucket_with_prefix(
     client: &Client,
     bucket: &str,
     prefix: &str,
-    start_after: &Option<String>,
+    start_after: Option<&str>,
 ) -> Result<(Vec<ScannedObject>, bool)> {
     let mut scanned_objects = Vec::new();
 
@@ -23,7 +22,7 @@ async fn list_bucket_with_prefix(
         .list_objects_v2()
         .bucket(bucket)
         .prefix(prefix)
-        .set_start_after(start_after.clone())
+        .set_start_after(start_after.map(std::string::ToString::to_string))
         .send();
 
     let resp = resp_handler.await?;
@@ -31,7 +30,11 @@ async fn list_bucket_with_prefix(
     if let Some(contents) = resp.contents {
         for object in contents {
             if let (Some(key), Some(size)) = (object.key, object.size) {
-                scanned_objects.push(ScannedObject::new(bucket.to_string(), key, size as usize));
+                scanned_objects.push(ScannedObject::new(
+                    bucket.to_string(),
+                    key,
+                    usize::try_from(size)?,
+                ));
             }
         }
     }
@@ -56,7 +59,7 @@ async fn execute(client: Client, params: JobParams, sender: Sender<ScannedObject
             &client,
             params.get_bucket(),
             params.get_key_prefix(),
-            &start_after,
+            start_after.as_deref(),
         )
         .await?;
         if scanned_objects.is_empty() {
@@ -69,11 +72,11 @@ async fn execute(client: Client, params: JobParams, sender: Sender<ScannedObject
             );
         }
         for scanned_object in scanned_objects {
-            log::info!("Found file: {:?}", scanned_object);
+            log::info!("Found file: {scanned_object:?}");
             start_after = Some(scanned_object.get_key().to_owned());
             sender.send(scanned_object).await?;
         }
-        log::info!("Last ingested key: {:?}", start_after);
+        log::info!("Last ingested key: {start_after:?}");
         if is_truncated {
             // Don't sleep. Restart the next iteration immediately to handle more keys.
             // TODO:
@@ -86,14 +89,12 @@ async fn execute(client: Client, params: JobParams, sender: Sender<ScannedObject
 
 impl Job {
     pub fn spawn(client: Client, params: JobParams, sender: Sender<ScannedObject>) -> Self {
-        let execution_param = params.clone();
         let handle = tokio::spawn(async move {
-            if let Err(e) = execute(client, execution_param, sender).await {
-                log::error!("Job execution failed: {}", e);
+            if let Err(e) = execute(client, params, sender).await {
+                log::error!("Job execution failed: {e}");
             }
         });
         Self {
-            params,
             id: uuid::Uuid::new_v4(),
             handle,
         }
@@ -103,7 +104,7 @@ impl Job {
         self.handle.abort();
     }
 
-    pub fn get_id(&self) -> uuid::Uuid {
+    pub const fn get_id(&self) -> uuid::Uuid {
         self.id
     }
 }

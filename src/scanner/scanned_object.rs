@@ -6,7 +6,7 @@ pub struct ScannedObject {
 }
 
 impl ScannedObject {
-    pub fn new(bucket: String, key: String, size: usize) -> Self {
+    pub const fn new(bucket: String, key: String, size: usize) -> Self {
         Self { bucket, key, size }
     }
 
@@ -18,7 +18,7 @@ impl ScannedObject {
         &self.key
     }
 
-    pub fn get_size(&self) -> usize {
+    pub const fn get_size(&self) -> usize {
         self.size
     }
 }

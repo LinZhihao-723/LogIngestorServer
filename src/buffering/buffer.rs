@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub struct Buffer {
-    buffer_tag: String,
+    tag: String,
     buffered_objects: Vec<ScannedObject>,
     listener_key: ListenerKey,
     total_buffered_size: usize,
@@ -25,7 +25,7 @@ impl Buffer {
             listener_key.get_access_key_id()
         );
         Self {
-            buffer_tag,
+            tag: buffer_tag,
             buffered_objects: Vec::new(),
             listener_key,
             total_buffered_size: 0,
@@ -45,15 +45,12 @@ impl Buffer {
 
     pub async fn flush(&mut self) -> Result<()> {
         if self.buffered_objects.is_empty() {
-            log::info!(
-                "[{}] Buffer is empty, nothing to flush.",
-                self.buffer_tag.as_str()
-            );
+            log::info!("[{}] Buffer is empty, nothing to flush.", self.tag.as_str());
             return Ok(());
         }
         log::info!(
             "[{}] Flushing {} objects with total size {} bytes.",
-            self.buffer_tag.as_str(),
+            self.tag.as_str(),
             self.buffered_objects.len(),
             self.total_buffered_size
         );
@@ -91,7 +88,7 @@ impl Buffer {
                 Ok(compression_job_id) => {
                     log::info!(
                         "[{}] Submitted compression job {} for object {:?}.",
-                        self.buffer_tag.as_str(),
+                        self.tag.as_str(),
                         compression_job_id,
                         obj
                     );
@@ -99,7 +96,7 @@ impl Buffer {
                 Err(e) => {
                     log::error!(
                         "[{}] Failed to submit compression job for object {:?}: {}",
-                        self.buffer_tag.as_str(),
+                        self.tag.as_str(),
                         obj,
                         e
                     );
@@ -109,10 +106,10 @@ impl Buffer {
 
         log::info!(
             "[{}] Flushing objects:\n{}",
-            self.buffer_tag.as_str(),
+            self.tag.as_str(),
             self.buffered_objects
                 .iter()
-                .map(|obj| format!("{:?}", obj))
+                .map(|obj| format!("{obj:?}"))
                 .collect::<Vec<_>>()
                 .join("\n")
         );

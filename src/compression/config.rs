@@ -2,13 +2,13 @@ use anyhow::Result;
 use brotli::CompressorWriter;
 use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct JobConfig {
     pub input: Input,
     pub output: Output,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Input {
     pub aws_authentication: AwsAuthentication,
     pub bucket: String,
@@ -17,20 +17,20 @@ pub struct Input {
     pub region_code: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "type")]
 pub enum AwsAuthentication {
     #[serde(rename = "credentials")]
     Credentials { credentials: AwsCredentials },
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AwsCredentials {
     pub access_key_id: String,
     pub secret_access_key: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Output {
     pub compression_level: u8,
     pub target_archive_size: u64,
@@ -46,11 +46,6 @@ impl JobConfig {
         std::io::copy(&mut &msgpack_data[..], &mut encoder)?;
         let compressed_data = encoder.into_inner();
         Ok(compressed_data)
-    }
-
-    pub fn serialize_to_msgpack_brotli_str(&self) -> Result<String> {
-        let compressed_data = self.to_msgpack_brotli()?;
-        Ok(hex::encode(compressed_data))
     }
 }
 
@@ -82,7 +77,7 @@ mod tests {
             },
         };
 
-        let serialized_result = config.serialize_to_msgpack_brotli_str();
+        let serialized_result = config.to_msgpack_brotli();
         assert!(serialized_result.is_ok());
         let serialized = serialized_result.unwrap();
         let expected = "1b610100e4f8fbb900194983555814ddcfbe7b2b2cb24e1bd80e6fb10ea7fc7d74\
@@ -92,6 +87,6 @@ mod tests {
              2fbd2cc1ff7eb8049dc72554cdebdcfc0e5454d1212a2e525264807a20648951dc3\
              b886399e595b341637d1b5a523836a10a38f0f453c08f706a84fe47f2c140a7d174\
              f318faccb88c023fca9b2900239ed1785797b22";
-        assert_eq!(expected, serialized);
+        assert_eq!(expected, hex::encode(serialized));
     }
 }

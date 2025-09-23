@@ -47,13 +47,10 @@ async fn main() -> std::io::Result<()> {
 
     // Initialize database connection
     match database::mysql::init(&args.db_url).await {
-        Ok(_) => log::info!("Database initialized successfully."),
+        Ok(()) => log::info!("Database initialized successfully."),
         Err(e) => {
             log::error!("Failed to initialize database: {}. Url: {}", e, args.db_url);
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Database init failed.",
-            ));
+            return Err(std::io::Error::other("Database init failed."));
         }
     }
 
@@ -73,5 +70,8 @@ async fn main() -> std::io::Result<()> {
     })
     .bind(("127.0.0.1", 8080))?
     .run()
-    .await
+    .await?;
+
+    database::mysql::deinit().await;
+    Ok(())
 }

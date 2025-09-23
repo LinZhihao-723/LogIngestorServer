@@ -19,6 +19,5 @@ serde = "1.0.217"
 secrecy = { version = "0.8", features = ["serde"] }
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "mysql"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
-tokio-util = { version = "0.7", features = ["rt"] }
 uuid = { version = "1", features = ["v4"] }
 clap = { version = "4.5.48", features = ["derive"] }
