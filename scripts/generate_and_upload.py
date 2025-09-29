@@ -39,10 +39,11 @@ def generate_random(n=1000, sleep_time=0.005):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate and upload log files to S3.")
-    parser.add_argument('--s3-key', required=True, help='S3 credential key')
-    parser.add_argument('--s3-secret', required=True, help='S3 secret key')
-    parser.add_argument('--s3-bucket', required=True, help='S3 bucket name')
-    parser.add_argument('--num-files', type=int, default=1, help='Number of files to generate')
+    parser.add_argument("--s3-endpoint", required=True, help="S3 endpoint URL")
+    parser.add_argument("--s3-key", required=True, help="S3 credential key")
+    parser.add_argument("--s3-secret", required=True, help="S3 secret key")
+    parser.add_argument("--s3-bucket", required=True, help="S3 bucket name")
+    parser.add_argument("--num-files", type=int, default=1, help="Number of files to generate")
     args = parser.parse_args()
 
     prefix = f"test-{round(time.time())}"
@@ -50,6 +51,7 @@ if __name__ == "__main__":
     region = "us-east-2"
     s3_client = boto3.client(
         's3',
+        endpoint_url=args.s3_endpoint,
         aws_access_key_id=args.s3_key,
         aws_secret_access_key=args.s3_secret,
         region_name=region
