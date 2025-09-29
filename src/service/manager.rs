@@ -16,6 +16,7 @@ pub struct ScannerServiceManager {
     listener_table: DashMap<ListenerKey, Listener>,
     listener_channel_size: usize,
     listener_channel_timeout: Duration,
+    s3_endpoint: Option<String>,
     buffer_size: usize,
 }
 
@@ -23,6 +24,7 @@ impl ScannerServiceManager {
     pub fn new(
         listener_channel_size: usize,
         listener_channel_timeout: Duration,
+        s3_endpoint: Option<String>,
         buffer_size: usize,
     ) -> Self {
         Self {
@@ -30,6 +32,7 @@ impl ScannerServiceManager {
             listener_table: DashMap::new(),
             listener_channel_size,
             listener_channel_timeout,
+            s3_endpoint,
             buffer_size,
         }
     }
@@ -48,8 +51,18 @@ impl ScannerServiceManager {
             secret_access_key.expose_secret().clone(),
         );
 
-        let client =
-            create_s3_client(&access_key_id, &secret_access_key, job_params.get_region()).await;
+        let s3_endpoint = self.s3_endpoint.as_ref().map_or_else(
+            || format!("https://s3.{}.amazonaws.com", job_params.get_region()),
+            ToString::to_string,
+        );
+
+        let client = create_s3_client(
+            s3_endpoint.as_str(),
+            job_params.get_region(),
+            &access_key_id,
+            &secret_access_key,
+        )
+        .await;
         let job = Job::spawn(
             client,
             job_params.clone(),

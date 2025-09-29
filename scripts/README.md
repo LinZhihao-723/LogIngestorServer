@@ -37,3 +37,21 @@ python3 generate_and_upload.py \
 ```
 
 You can check the uploaded files in the MinIO console at `http://localhost:9001`.
+
+## Test the Server
+
+First, start the server (replace `${MARIADB_PASSWORD}` with the actual password when starting the
+CLP package):
+
+```shell
+cargo run --release -- \
+    --db-url "mysql://clp-user:${MARIADB_PASSWORD}/clp-db" \
+    --s3-endpoint http://localhost:9000
+```
+
+Then, create a scanning job (replace `${PREFIX}` with the actual prefix used in the upload step):
+
+```shell
+curl -v -u "minioadmin:minioadmin" \
+"http://127.0.0.1:8080/create?region=test&bucket=integration-test&dataset=test&key_prefix=${PREFIX}"
+```

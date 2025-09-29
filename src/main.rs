@@ -16,6 +16,9 @@ use service::{
 struct Args {
     #[clap(long)]
     db_url: String,
+
+    #[clap(long)]
+    s3_endpoint: Option<String>,
 }
 
 #[actix_web::main]
@@ -58,6 +61,7 @@ async fn main() -> std::io::Result<()> {
     let scanner_service_manager = web::Data::new(ScannerServiceManager::new(
         100,                                // listener channel size
         std::time::Duration::from_secs(60), // listener channel timeout
+        args.s3_endpoint.clone(),           // optional S3 endpoint
         10 * 1024 * 1024,                   // buffer size (bytes)
     ));
 

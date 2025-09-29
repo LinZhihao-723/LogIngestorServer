@@ -6,9 +6,10 @@ use aws_sdk_s3::{
 use secrecy::{ExposeSecret, SecretString};
 
 pub async fn create_s3_client(
+    endpoint: &str,
+    region_id: &str,
     access_key_id: &str,
     secret_access_key: &SecretString,
-    region_id: &str,
 ) -> Client {
     let credential = Credentials::new(
         access_key_id,
@@ -20,10 +21,12 @@ pub async fn create_s3_client(
     let region = Region::new(region_id.to_owned());
     let base_config = aws_config::defaults(BehaviorVersion::v2025_08_07())
         .region(region.clone())
+        .endpoint_url(endpoint)
         .load()
         .await;
     let config = Builder::from(&base_config)
         .credentials_provider(credential)
+        .force_path_style(true)
         .region(region)
         .build();
     Client::from_conf(config)
