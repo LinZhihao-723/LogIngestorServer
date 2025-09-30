@@ -11,14 +11,11 @@ pub async fn create_scanner_job(
     auth: BasicAuth,
     query: web::Query<JobParams>,
 ) -> impl Responder {
-    match service_mgr.create_job(auth, query.into_inner()).await {
-        Ok(id) => HttpResponse::Ok().body(id.to_string()),
-        Err(e) => {
-            let error_msg = format!("Failed to create job: {e}");
-            log::error!("{}", error_msg.as_str());
-            HttpResponse::InternalServerError().body(error_msg)
-        }
-    }
+    HttpResponse::Ok().body(
+        service_mgr
+            .create_job(&auth, query.into_inner())
+            .to_string(),
+    )
 }
 
 #[derive(Deserialize)]

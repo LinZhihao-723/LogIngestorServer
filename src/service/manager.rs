@@ -37,7 +37,7 @@ impl ScannerServiceManager {
         }
     }
 
-    pub async fn create_job(&self, auth: BasicAuth, job_params: JobParams) -> Result<Uuid> {
+    pub fn create_job(&self, auth: &BasicAuth, job_params: JobParams) -> Uuid {
         log::info!("Received job creation request {job_params:?}.");
         let access_key_id = auth.user_id().to_owned();
         let secret_access_key = SecretString::from(auth.password().unwrap_or("").to_owned());
@@ -61,11 +61,10 @@ impl ScannerServiceManager {
             job_params.get_region(),
             &access_key_id,
             &secret_access_key,
-        )
-        .await;
+        );
         let job = Job::spawn(
             client,
-            job_params.clone(),
+            job_params,
             self.listener_table
                 .entry(listener_key.clone())
                 .or_insert_with(|| {
@@ -82,7 +81,7 @@ impl ScannerServiceManager {
 
         let id = job.get_id();
         self.job_table.insert(id, job);
-        Ok(id)
+        id
     }
 
     #[allow(clippy::unused_async)]
