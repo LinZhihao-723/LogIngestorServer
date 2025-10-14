@@ -38,6 +38,24 @@ python3 generate_and_upload.py \
 
 You can check the uploaded files in the MinIO console at `http://localhost:9001`.
 
+### Ingest to AWS S3
+
+You can also upload the generated files to an AWS S3 bucket. Just replace the `--s3-endpoint`,
+`--s3-key`, `--s3-secret`, and `--s3-bucket` parameters with your AWS S3 credentials and bucket
+name.
+
+```shell
+python3 generate_and_upload.py \
+    --s3-endpoint "https://s3.us-east-2.amazonaws.com" \
+    --s3-key "$AWS_S3_KEY_ID" \
+    --s3-secret "$AWS_S3_SECRET_KEY" \
+    --s3-bucket "$BUCKET_NAME" \
+    --num-files 1
+```
+
+NOTE: We hardcode the region to `us-east-2` in the script. You can change it in the script if
+needed.
+
 ## Test the Server
 
 First, start the server (replace `${MARIADB_PASSWORD}` with the actual password when starting the
