@@ -37,7 +37,7 @@ impl ScannerServiceManager {
         }
     }
 
-    pub fn create_job(&self, auth: &BasicAuth, job_params: JobParams) -> Uuid {
+    pub async fn create_job(&self, auth: &BasicAuth, job_params: JobParams) -> Uuid {
         log::info!("Received job creation request {job_params:?}.");
         let access_key_id = auth.user_id().to_owned();
         let secret_access_key = SecretString::from(auth.password().unwrap_or("").to_owned());
@@ -46,6 +46,8 @@ impl ScannerServiceManager {
             job_params
                 .get_dataset()
                 .map(std::string::ToString::to_string),
+            job_params.get_bucket().to_string(),
+            job_params.get_key_prefix().to_string(),
             job_params.get_region().to_string(),
             access_key_id.clone(),
             secret_access_key.expose_secret().clone(),
@@ -61,7 +63,8 @@ impl ScannerServiceManager {
             job_params.get_region(),
             &access_key_id,
             &secret_access_key,
-        );
+        )
+        .await;
         let job = Job::spawn(
             client,
             job_params,

@@ -11,11 +11,8 @@ pub async fn create_scanner_job(
     auth: BasicAuth,
     query: web::Query<JobParams>,
 ) -> impl Responder {
-    HttpResponse::Ok().body(
-        service_mgr
-            .create_job(&auth, query.into_inner())
-            .to_string(),
-    )
+    let job_id = service_mgr.create_job(&auth, query.into_inner()).await;
+    HttpResponse::Ok().body(job_id.to_string())
 }
 
 #[derive(Deserialize)]

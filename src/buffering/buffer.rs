@@ -20,8 +20,9 @@ pub struct Buffer {
 impl Buffer {
     pub fn new(listener_key: ListenerKey, size_threshold: usize) -> Self {
         let buffer_tag = format!(
-            "{}-{}",
+            "{}-{}-{}",
             listener_key.get_dataset().unwrap_or("default"),
+            listener_key.get_bucket(),
             listener_key.get_access_key_id()
         );
         Self {
@@ -55,52 +56,53 @@ impl Buffer {
             self.total_buffered_size
         );
 
+        let mut keys = Vec::new();
         for obj in &self.buffered_objects {
-            let job_config = JobConfig {
-                input: Input {
-                    aws_authentication: AwsAuthentication::Credentials {
-                        credentials: AwsCredentials {
-                            access_key_id: self.listener_key.get_access_key_id().to_string(),
-                            secret_access_key: self
-                                .listener_key
-                                .get_secret_access_key()
-                                .to_string(),
-                        },
+            log::info!("Submitting object with key: {:?}", obj.get_key());
+            keys.push(obj.get_key().to_owned());
+        }
+
+        let job_config = JobConfig {
+            input: Input {
+                aws_authentication: AwsAuthentication::Credentials {
+                    credentials: AwsCredentials {
+                        access_key_id: self.listener_key.get_access_key_id().to_string(),
+                        secret_access_key: self.listener_key.get_secret_access_key().to_string(),
                     },
-                    bucket: obj.get_bucket().to_string(),
-                    dataset: self
-                        .listener_key
-                        .get_dataset()
-                        .unwrap_or("default")
-                        .to_string(),
-                    key_prefix: obj.get_key().to_string(),
-                    region_code: self.listener_key.get_region().to_string(),
                 },
-                output: Output {
-                    compression_level: 3,
-                    target_archive_size: 268_435_456,
-                    target_dictionaries_size: 33_554_432,
-                    target_encoded_file_size: 268_435_456,
-                    target_segment_size: 268_435_456,
-                },
-            };
-            match submit_compression_job(job_config).await {
-                Ok(compression_job_id) => {
-                    log::info!(
-                        "[{}] Submitted compression job {} for object {:?}.",
-                        self.tag.as_str(),
-                        compression_job_id,
-                        obj
-                    );
-                }
-                Err(e) => {
-                    log::error!(
-                        "[{}] Failed to submit compression job for object {:?}: {}",
-                        self.tag.as_str(),
-                        obj,
-                        e
-                    );
-                }
+                bucket: self.listener_key.get_bucket().to_string(),
+                dataset: self
+                    .listener_key
+                    .get_dataset()
+                    .unwrap_or("default")
+                    .to_string(),
+                key_prefix: self.listener_key.get_key_prefix().to_string(),
+                region_code: self.listener_key.get_region().to_string(),
+                keys: Some(keys),
+            },
+            output: Output {
+                compression_level: 3,
+                target_archive_size: 268_435_456,
+                target_dictionaries_size: 33_554_432,
+                target_encoded_file_size: 268_435_456,
+                target_segment_size: 268_435_456,
+            },
+        };
+
+        match submit_compression_job(job_config).await {
+            Ok(compression_job_id) => {
+                log::info!(
+                    "[{}] Submitted compression job. Job ID: {}.",
+                    self.tag.as_str(),
+                    compression_job_id
+                );
+            }
+            Err(e) => {
+                log::error!(
+                    "[{}] Failed to submit compression job for object. Error: {}",
+                    self.tag.as_str(),
+                    e
+                );
             }
         }
 

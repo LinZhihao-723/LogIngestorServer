@@ -25,7 +25,13 @@ async fn list_bucket_with_prefix(
         .set_start_after(start_after.map(std::string::ToString::to_string))
         .send();
 
-    let resp = resp_handler.await?;
+    let resp = match resp_handler.await {
+        Ok(output) => output,
+        Err(e) => {
+            log::error!("Error listing objects in bucket {bucket}: {e:?}");
+            return Err(anyhow::anyhow!(e));
+        }
+    };
 
     if let Some(contents) = resp.contents {
         for object in contents {
@@ -91,7 +97,7 @@ impl Job {
     pub fn spawn(client: Client, params: JobParams, sender: Sender<ScannedObject>) -> Self {
         let handle = tokio::spawn(async move {
             if let Err(e) = execute(client, params, sender).await {
-                log::error!("Job execution failed: {e}");
+                log::error!("Job execution failed: {e:?}");
             }
         });
         Self {

@@ -15,6 +15,7 @@ pub struct Input {
     pub dataset: String,
     pub key_prefix: String,
     pub region_code: String,
+    pub keys: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -66,6 +67,7 @@ mod tests {
                 bucket: "yscope".into(),
                 dataset: "default".into(),
                 key_prefix: "sample-logs/cockroachdb.clp.zst".into(),
+                keys: None,
                 region_code: "us-east-2".into(),
             },
             output: Output {
@@ -80,13 +82,12 @@ mod tests {
         let serialized_result = config.to_msgpack_brotli();
         assert!(serialized_result.is_ok());
         let serialized = serialized_result.unwrap();
-        let expected = "1b610100e4f8fbb900194983555814ddcfbe7b2b2cb24e1bd80e6fb10ea7fc7d74\
-             1b6df4d12cecc74cb340b230e726f476672375d125c174059c2deefc1081673413e\
-             9a21f305dc660e020c6836e1cd2790b67989e78fd04531e832e9db2f97cb1d9847a\
-             b10fd5c28de005600fb76631df28b600ba5c0b4c34655a8fc5b69b444d479936e73\
-             2fbd2cc1ff7eb8049dc72554cdebdcfc0e5454d1212a2e525264807a20648951dc3\
-             b886399e595b341637d1b5a523836a10a38f0f453c08f706a84fe47f2c140a7d174\
-             f318faccb88c023fca9b2900239ed1785797b22";
+        let expected = "1b670100e4686e1b84422a1e9a49134b37f5fbc7a2a6e4da2024066fb20ea7fc1eed5\
+                7f4280bfb9869164816e6dce48fce6ca42eba24375e0267f31bdf47e029cd9ae8a21f6ebc88c1b8bd18\
+                0fba7188ce5b38fcf8c8eb2798f21074e998ce66f3f53a54f35d28e7ae042f007bb8d6f3d95abe01d0e\
+                54aa0a22993d5506cbd4ed40c2893f5b9d4ae34f1c77c3b6012b55c15e377ef337079519384986879b1\
+                11923d5105a4da2dc5a8865534b5e83aff5b1935ceaea26b0b8826562284efdf8a5890ef0d501fc9ff0\
+                8c3309fc553d8a3d16544c021fa6069c8829cf6b3c2b44901";
         assert_eq!(expected, hex::encode(serialized));
     }
 }

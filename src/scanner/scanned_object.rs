@@ -1,4 +1,5 @@
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ScannedObject {
     bucket: String,
     key: String,
@@ -10,7 +11,7 @@ impl ScannedObject {
         Self { bucket, key, size }
     }
 
-    pub fn get_bucket(&self) -> &str {
+    pub fn _get_bucket(&self) -> &str {
         &self.bucket
     }
 
