@@ -36,6 +36,11 @@ async fn list_bucket_with_prefix(
     if let Some(contents) = resp.contents {
         for object in contents {
             if let (Some(key), Some(size)) = (object.key, object.size) {
+                if key.ends_with('/') {
+                    // Skip directory-like entries
+                    log::warn!("Skipping directory-like entry: {key}");
+                    continue;
+                }
                 scanned_objects.push(ScannedObject::new(
                     bucket.to_string(),
                     key,
