@@ -9,16 +9,16 @@ use tokio::{
 };
 
 use super::{Buffer, ListenerKey};
-use crate::scanner::ScannedObject;
+use crate::utils::S3Object;
 
 pub struct Listener {
-    sender: mpsc::Sender<ScannedObject>,
+    sender: mpsc::Sender<S3Object>,
     #[allow(dead_code)]
     handle: JoinHandle<()>,
 }
 
 async fn listen(
-    mut receiver: mpsc::Receiver<ScannedObject>,
+    mut receiver: mpsc::Receiver<S3Object>,
     mut buffer: Buffer,
     timeout: Duration,
 ) -> Result<()> {
@@ -69,7 +69,7 @@ impl Listener {
         }
     }
 
-    pub fn get_new_sender(&self) -> mpsc::Sender<ScannedObject> {
+    pub fn get_new_sender(&self) -> mpsc::Sender<S3Object> {
         self.sender.clone()
     }
 }

@@ -6,12 +6,12 @@ use crate::{
         config::{AwsAuthentication, AwsCredentials, Input, JobConfig, Output},
         submit_compression_job,
     },
-    scanner::ScannedObject,
+    utils::S3Object,
 };
 
 pub struct Buffer {
     tag: String,
-    buffered_objects: Vec<ScannedObject>,
+    buffered_objects: Vec<S3Object>,
     listener_key: ListenerKey,
     total_buffered_size: usize,
     size_threshold: usize,
@@ -34,7 +34,7 @@ impl Buffer {
         }
     }
 
-    pub async fn add_object(&mut self, object: ScannedObject) -> Result<()> {
+    pub async fn add_object(&mut self, object: S3Object) -> Result<()> {
         self.total_buffered_size += object.get_size();
         self.buffered_objects.push(object);
         if self.total_buffered_size < self.size_threshold {

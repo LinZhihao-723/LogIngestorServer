@@ -2,8 +2,7 @@ use anyhow::Result;
 use aws_sdk_s3::Client;
 use tokio::{sync::mpsc::Sender, task::JoinHandle, time::sleep};
 
-use super::ScannedObject;
-use crate::scanner::JobParams;
+use crate::{scanner::JobParams, utils::S3Object};
 
 pub struct Job {
     id: uuid::Uuid,
@@ -15,7 +14,7 @@ async fn list_bucket_with_prefix(
     bucket: &str,
     prefix: &str,
     start_after: Option<&str>,
-) -> Result<(Vec<ScannedObject>, bool)> {
+) -> Result<(Vec<S3Object>, bool)> {
     let mut scanned_objects = Vec::new();
 
     let resp_handler = client
@@ -41,7 +40,7 @@ async fn list_bucket_with_prefix(
                     log::warn!("Skipping directory-like entry: {key}");
                     continue;
                 }
-                scanned_objects.push(ScannedObject::new(
+                scanned_objects.push(S3Object::new(
                     bucket.to_string(),
                     key,
                     usize::try_from(size)?,
@@ -63,7 +62,7 @@ async fn list_bucket_with_prefix(
     }
 }
 
-async fn execute(client: Client, params: JobParams, sender: Sender<ScannedObject>) -> Result<()> {
+async fn execute(client: Client, params: JobParams, sender: Sender<S3Object>) -> Result<()> {
     let mut start_after: Option<String> = None;
     loop {
         let (scanned_objects, is_truncated) = list_bucket_with_prefix(
@@ -99,7 +98,7 @@ async fn execute(client: Client, params: JobParams, sender: Sender<ScannedObject
 }
 
 impl Job {
-    pub fn spawn(client: Client, params: JobParams, sender: Sender<ScannedObject>) -> Self {
+    pub fn spawn(client: Client, params: JobParams, sender: Sender<S3Object>) -> Self {
         let handle = tokio::spawn(async move {
             if let Err(e) = execute(client, params, sender).await {
                 log::error!("Job execution failed: {e:?}");

@@ -8,7 +8,8 @@ use uuid::Uuid;
 
 use crate::{
     buffering::{Listener, ListenerKey},
-    scanner::{Job, JobParams, create_s3_client},
+    scanner::{Job, JobParams},
+    utils::create_s3_client,
 };
 
 pub struct ScannerServiceManager {

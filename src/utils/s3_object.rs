@@ -1,12 +1,12 @@
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct ScannedObject {
+pub struct S3Object {
     bucket: String,
     key: String,
     size: usize,
 }
 
-impl ScannedObject {
+impl S3Object {
     pub const fn new(bucket: String, key: String, size: usize) -> Self {
         Self { bucket, key, size }
     }
