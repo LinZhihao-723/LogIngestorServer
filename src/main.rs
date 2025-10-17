@@ -3,6 +3,7 @@ mod compression;
 mod database;
 mod scanner;
 mod service;
+mod sqs_listener;
 mod utils;
 
 use actix_web::{App, HttpServer, web};

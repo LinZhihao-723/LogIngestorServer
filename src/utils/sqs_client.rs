@@ -1,22 +1,21 @@
 use aws_config::BehaviorVersion;
-use aws_sdk_s3::{
+use aws_sdk_sqs::{
     Client,
     config::{Builder, Credentials, Region},
 };
 use secrecy::{ExposeSecret, SecretString};
 
-pub async fn create_s3_client(
-    s3_endpoint: &str,
+pub async fn create_sqs_client(
     region_id: &str,
     access_key_id: &str,
     secret_access_key: &SecretString,
 ) -> Client {
-    let credential = Credentials::new(
+    let credentials = Credentials::new(
         access_key_id,
         secret_access_key.expose_secret(),
         None,
         None,
-        "User",
+        "clp-user",
     );
     let region = Region::new(region_id.to_owned());
     let base_config = aws_config::defaults(BehaviorVersion::latest())
@@ -24,10 +23,8 @@ pub async fn create_s3_client(
         .load()
         .await;
     let config = Builder::from(&base_config)
-        .credentials_provider(credential)
+        .credentials_provider(credentials)
         .region(region)
-        .endpoint_url(s3_endpoint.to_string())
-        .force_path_style(true)
         .build();
     Client::from_conf(config)
 }
