@@ -6,6 +6,7 @@ CLP.
 ## Prerequisites
 
 - CLP version higher than [this][clp-version-required] commit.
+- Rust toolchain installed. You can follow the instructions at [rustup.rs] to install Rust.
 
 ## Ingest Logs to S3-Compatible Storage
 
@@ -96,4 +97,5 @@ curl "http://127.0.0.1:8080/delete?job_id={$JOB_ID}"
 ```
 
 [clp-version-required]: https://github.com/y-scope/clp/tree/e6b4a203aaa64415e28287963f99ea35c7c466ee
+[rustup.rs]: https://rustup.rs/
 [url-encode-tool]: https://meyerweb.com/eric/tools/dencoder/
