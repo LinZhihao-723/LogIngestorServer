@@ -19,10 +19,17 @@ struct Args {
     #[clap(long)]
     db_url: String,
 
-    #[clap(long, help = "Optional S3 endpoint for connecting to S3-compatible storage.")]
+    #[clap(
+        long,
+        help = "Optional S3 endpoint for connecting to S3-compatible storage."
+    )]
     s3_endpoint: Option<String>,
 
-    #[clap(long, default_value = "127.0.0.1", help = "Host to bind the server to.")]
+    #[clap(
+        long,
+        default_value = "127.0.0.1",
+        help = "Host to bind the server to."
+    )]
     host: String,
 
     #[clap(long, default_value_t = 8080, help = "Port to bind the server to.")]
