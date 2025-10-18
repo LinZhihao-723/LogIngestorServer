@@ -1,4 +1,4 @@
 mod manager;
-pub mod scanner;
+pub mod service;
 
 pub use manager::ScannerServiceManager;

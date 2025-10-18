@@ -1,12 +1,37 @@
 use anyhow::Result;
 use aws_sdk_sqs::Client;
-use crate::sqs_listener::JobParams;
 use tokio::{sync::mpsc::Sender, task::JoinHandle, time::sleep};
-use crate::utils::{S3Object, S3Event};
+
+use crate::{
+    sqs_listener::JobParams,
+    utils::{S3Event, S3Object},
+};
 
 pub struct Job {
     id: uuid::Uuid,
     handle: JoinHandle<()>,
+}
+
+impl Job {
+    pub fn spawn(client: Client, params: JobParams) -> Self {
+        let handle = tokio::spawn(async move {
+            if let Err(e) = listen_to_sqs_queue(client, params).await {
+                log::error!("Job execution failed: {e:?}");
+            }
+        });
+        Self {
+            id: uuid::Uuid::new_v4(),
+            handle,
+        }
+    }
+
+    pub fn cancel(&self) {
+        self.handle.abort();
+    }
+
+    pub const fn get_id(&self) -> uuid::Uuid {
+        self.id
+    }
 }
 
 async fn listen_to_sqs_queue(
@@ -36,6 +61,7 @@ async fn listen_to_sqs_queue(
                 log::warn!("Received SQS message with empty body. Skipping.");
                 continue;
             }
+
             let event: S3Event = match serde_json::from_str(msg.body().unwrap()) {
                 Ok(deserialized) => deserialized,
                 Err(e) => {
@@ -48,7 +74,7 @@ async fn listen_to_sqs_queue(
 
             let mut object_found = false;
             for record in event.records {
-                if false == record.event_name.starts_with("s3:ObjectCreated:") {
+                if false == record.event_name.starts_with("ObjectCreated:") {
                     continue;
                 }
 
@@ -58,7 +84,9 @@ async fn listen_to_sqs_queue(
                 }
 
                 let object_key = record.s3.object.key.as_str();
-                if object_key.ends_with('/') || false == object_key.starts_with(job.get_key_prefix()) {
+                if object_key.ends_with('/')
+                    || false == object_key.starts_with(job.get_key_prefix())
+                {
                     continue;
                 }
 
@@ -73,15 +101,17 @@ async fn listen_to_sqs_queue(
             }
 
             if false == object_found {
+                log::info!("No relevant S3 objects found in SQS message.");
                 continue;
             }
             if let Some(receipt) = msg.receipt_handle() {
-                match
-                client.delete_message()
+                match client
+                    .delete_message()
                     .queue_url(job.get_sqs_url())
                     .receipt_handle(receipt)
                     .send()
-                    .await {
+                    .await
+                {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("Failed to delete SQS message: {e:?}");

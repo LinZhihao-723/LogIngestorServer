@@ -1,11 +1,12 @@
 use serde::Deserialize;
+use url::Url;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct JobParams {
     region: String,
     bucket: String,
     key_prefix: String,
-    sqs_url: String,
+    sqs_url: Url,
     dataset: Option<String>,
 }
 
@@ -23,7 +24,7 @@ impl JobParams {
     }
 
     pub fn get_sqs_url(&self) -> &str {
-        &self.sqs_url
+        &self.sqs_url.as_str()
     }
 
     pub fn get_dataset(&self) -> Option<&str> {

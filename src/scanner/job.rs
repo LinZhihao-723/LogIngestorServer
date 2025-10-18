@@ -9,6 +9,28 @@ pub struct Job {
     handle: JoinHandle<()>,
 }
 
+impl Job {
+    pub fn spawn(client: Client, params: JobParams, sender: Sender<S3Object>) -> Self {
+        let handle = tokio::spawn(async move {
+            if let Err(e) = execute(client, params, sender).await {
+                log::error!("Job execution failed: {e:?}");
+            }
+        });
+        Self {
+            id: uuid::Uuid::new_v4(),
+            handle,
+        }
+    }
+
+    pub fn cancel(&self) {
+        self.handle.abort();
+    }
+
+    pub const fn get_id(&self) -> uuid::Uuid {
+        self.id
+    }
+}
+
 async fn list_bucket_with_prefix(
     client: &Client,
     bucket: &str,
@@ -94,27 +116,5 @@ async fn execute(client: Client, params: JobParams, sender: Sender<S3Object>) ->
             continue;
         }
         sleep(std::time::Duration::from_secs(30)).await;
-    }
-}
-
-impl Job {
-    pub fn spawn(client: Client, params: JobParams, sender: Sender<S3Object>) -> Self {
-        let handle = tokio::spawn(async move {
-            if let Err(e) = execute(client, params, sender).await {
-                log::error!("Job execution failed: {e:?}");
-            }
-        });
-        Self {
-            id: uuid::Uuid::new_v4(),
-            handle,
-        }
-    }
-
-    pub fn cancel(&self) {
-        self.handle.abort();
-    }
-
-    pub const fn get_id(&self) -> uuid::Uuid {
-        self.id
     }
 }

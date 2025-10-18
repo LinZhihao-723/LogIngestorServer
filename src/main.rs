@@ -11,7 +11,7 @@ use clap::Parser;
 use flexi_logger::{Cleanup, Criterion, Duplicate, FileSpec, Logger, Naming};
 use service::{
     ScannerServiceManager,
-    scanner::{create_scanner_job, delete_scanner_job},
+    service::{create_scanner_job, create_sqs_listener_job, delete_job},
 };
 
 #[derive(Parser)]
@@ -72,7 +72,8 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(scanner_service_manager.clone())
             .service(create_scanner_job)
-            .service(delete_scanner_job)
+            .service(create_sqs_listener_job)
+            .service(delete_job)
     })
     .bind(("127.0.0.1", 8080))?
     .run()

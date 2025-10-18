@@ -8,9 +8,15 @@ use uuid::Uuid;
 
 use crate::{
     buffering::{Listener, ListenerKey},
-    scanner::{Job, JobParams},
-    utils::create_s3_client,
+    scanner::{Job as ScannerJob, JobParams as ScannerJobParams},
+    sqs_listener::{Job as SqsListenerJob, JobParams as SqsListenerJobParams},
+    utils::{create_s3_client, create_sqs_client},
 };
+
+enum Job {
+    Scanner(ScannerJob),
+    SqsListener(SqsListenerJob),
+}
 
 pub struct ScannerServiceManager {
     job_table: DashMap<Uuid, Job>,
@@ -19,6 +25,15 @@ pub struct ScannerServiceManager {
     listener_channel_timeout: Duration,
     s3_endpoint: Option<String>,
     buffer_size: usize,
+}
+
+impl Job {
+    fn cancel(&self) {
+        match self {
+            Job::Scanner(job) => job.cancel(),
+            Job::SqsListener(job) => job.cancel(),
+        }
+    }
 }
 
 impl ScannerServiceManager {
@@ -38,8 +53,8 @@ impl ScannerServiceManager {
         }
     }
 
-    pub async fn create_job(&self, auth: &BasicAuth, job_params: JobParams) -> Uuid {
-        log::info!("Received job creation request {job_params:?}.");
+    pub async fn create_scanner_job(&self, auth: &BasicAuth, job_params: ScannerJobParams) -> Uuid {
+        log::info!("Received scanner job creation request {job_params:?}.");
         let access_key_id = auth.user_id().to_owned();
         let secret_access_key = SecretString::from(auth.password().unwrap_or("").to_owned());
 
@@ -66,7 +81,7 @@ impl ScannerServiceManager {
             &secret_access_key,
         )
         .await;
-        let job = Job::spawn(
+        let job = ScannerJob::spawn(
             client,
             job_params,
             self.listener_table
@@ -84,7 +99,40 @@ impl ScannerServiceManager {
         );
 
         let id = job.get_id();
-        self.job_table.insert(id, job);
+        self.job_table.insert(id, Job::Scanner(job));
+        id
+    }
+
+    pub async fn create_sqs_listener_job(
+        &self,
+        auth: &BasicAuth,
+        job_params: SqsListenerJobParams,
+    ) -> Uuid {
+        log::info!(
+            "Received SQS listener job creation request {job_params:?}. SQS URL: {}",
+            job_params.get_sqs_url()
+        );
+
+        let access_key_id = auth.user_id().to_owned();
+        let secret_access_key = SecretString::from(auth.password().unwrap_or("").to_owned());
+
+        // let listener_key = ListenerKey::new(
+        //     job_params
+        //         .get_dataset()
+        //         .map(std::string::ToString::to_string),
+        //     job_params.get_bucket().to_string(),
+        //     job_params.get_key_prefix().to_string(),
+        //     job_params.get_region().to_string(),
+        //     access_key_id.clone(),
+        //     secret_access_key.expose_secret().clone(),
+        // );
+
+        let client =
+            create_sqs_client(job_params.get_region(), &access_key_id, &secret_access_key).await;
+        let job = SqsListenerJob::spawn(client, job_params);
+
+        let id = job.get_id();
+        self.job_table.insert(id, Job::SqsListener(job));
         id
     }
 

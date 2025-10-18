@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct S3Event {
+    #[serde(rename = "Records")]
     pub records: Vec<S3Record>,
 }
 
