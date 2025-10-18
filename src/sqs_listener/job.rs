@@ -84,9 +84,7 @@ async fn listen_to_sqs_queue(
                 }
 
                 let object_key = record.s3.object.key.as_str();
-                if object_key.ends_with('/')
-                    || !object_key.starts_with(job.get_key_prefix())
-                {
+                if object_key.ends_with('/') || !object_key.starts_with(job.get_key_prefix()) {
                     continue;
                 }
 
