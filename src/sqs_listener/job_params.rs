@@ -24,7 +24,7 @@ impl JobParams {
     }
 
     pub fn get_sqs_url(&self) -> &str {
-        &self.sqs_url.as_str()
+        self.sqs_url.as_str()
     }
 
     pub fn get_dataset(&self) -> Option<&str> {

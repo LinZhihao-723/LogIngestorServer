@@ -1,6 +1,6 @@
 use anyhow::Result;
 use aws_sdk_sqs::Client;
-use tokio::{sync::mpsc::Sender, task::JoinHandle, time::sleep};
+use tokio::{sync::mpsc::Sender, task::JoinHandle};
 
 use crate::{
     sqs_listener::JobParams,
@@ -13,9 +13,9 @@ pub struct Job {
 }
 
 impl Job {
-    pub fn spawn(client: Client, params: JobParams) -> Self {
+    pub fn spawn(client: Client, params: JobParams, sender: Sender<S3Object>) -> Self {
         let handle = tokio::spawn(async move {
-            if let Err(e) = listen_to_sqs_queue(client, params).await {
+            if let Err(e) = listen_to_sqs_queue(client, params, sender).await {
                 log::error!("Job execution failed: {e:?}");
             }
         });
@@ -37,7 +37,7 @@ impl Job {
 async fn listen_to_sqs_queue(
     client: Client,
     job: JobParams,
-    // sender: Sender<S3Object>,
+    sender: Sender<S3Object>,
 ) -> Result<()> {
     loop {
         // TODO: Add adaptive visibility timeout handling:
@@ -74,7 +74,7 @@ async fn listen_to_sqs_queue(
 
             let mut object_found = false;
             for record in event.records {
-                if false == record.event_name.starts_with("ObjectCreated:") {
+                if !record.event_name.starts_with("ObjectCreated:") {
                     continue;
                 }
 
@@ -85,7 +85,7 @@ async fn listen_to_sqs_queue(
 
                 let object_key = record.s3.object.key.as_str();
                 if object_key.ends_with('/')
-                    || false == object_key.starts_with(job.get_key_prefix())
+                    || !object_key.starts_with(job.get_key_prefix())
                 {
                     continue;
                 }
@@ -96,11 +96,12 @@ async fn listen_to_sqs_queue(
                     usize::try_from(record.s3.object.size)?,
                 );
 
-                log::info!("Found S3 object from SQS message: {:?}", s3_object);
+                log::info!("Found S3 object from SQS message: {s3_object:?}");
+                sender.send(s3_object).await?;
                 object_found = true;
             }
 
-            if false == object_found {
+            if !object_found {
                 log::info!("No relevant S3 objects found in SQS message.");
                 continue;
             }

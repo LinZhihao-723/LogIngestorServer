@@ -1,4 +1,3 @@
-use aws_sdk_s3::types::Event;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

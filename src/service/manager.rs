@@ -30,8 +30,8 @@ pub struct ScannerServiceManager {
 impl Job {
     fn cancel(&self) {
         match self {
-            Job::Scanner(job) => job.cancel(),
-            Job::SqsListener(job) => job.cancel(),
+            Self::Scanner(job) => job.cancel(),
+            Self::SqsListener(job) => job.cancel(),
         }
     }
 }
@@ -116,20 +116,35 @@ impl ScannerServiceManager {
         let access_key_id = auth.user_id().to_owned();
         let secret_access_key = SecretString::from(auth.password().unwrap_or("").to_owned());
 
-        // let listener_key = ListenerKey::new(
-        //     job_params
-        //         .get_dataset()
-        //         .map(std::string::ToString::to_string),
-        //     job_params.get_bucket().to_string(),
-        //     job_params.get_key_prefix().to_string(),
-        //     job_params.get_region().to_string(),
-        //     access_key_id.clone(),
-        //     secret_access_key.expose_secret().clone(),
-        // );
+        let listener_key = ListenerKey::new(
+            job_params
+                .get_dataset()
+                .map(std::string::ToString::to_string),
+            job_params.get_bucket().to_string(),
+            job_params.get_key_prefix().to_string(),
+            job_params.get_region().to_string(),
+            access_key_id.clone(),
+            secret_access_key.expose_secret().clone(),
+        );
 
         let client =
             create_sqs_client(job_params.get_region(), &access_key_id, &secret_access_key).await;
-        let job = SqsListenerJob::spawn(client, job_params);
+        let job = SqsListenerJob::spawn(
+            client,
+            job_params,
+            self.listener_table
+                .entry(listener_key.clone())
+                .or_insert_with(|| {
+                    log::info!("Creating a new listener.");
+                    Listener::spawn(
+                        listener_key,
+                        self.listener_channel_timeout,
+                        self.listener_channel_size,
+                        self.buffer_size,
+                    )
+                })
+                .get_new_sender(),
+        );
 
         let id = job.get_id();
         self.job_table.insert(id, Job::SqsListener(job));

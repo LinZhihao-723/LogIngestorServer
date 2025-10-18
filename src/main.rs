@@ -11,7 +11,7 @@ use clap::Parser;
 use flexi_logger::{Cleanup, Criterion, Duplicate, FileSpec, Logger, Naming};
 use service::{
     ScannerServiceManager,
-    service::{create_scanner_job, create_sqs_listener_job, delete_job},
+    service_method::{create_scanner_job, create_sqs_listener_job, delete_job},
 };
 
 #[derive(Parser)]
