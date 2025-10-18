@@ -19,8 +19,14 @@ struct Args {
     #[clap(long)]
     db_url: String,
 
-    #[clap(long)]
+    #[clap(long, help = "Optional S3 endpoint for connecting to S3-compatible storage.")]
     s3_endpoint: Option<String>,
+
+    #[clap(long, default_value = "127.0.0.1", help = "Host to bind the server to.")]
+    host: String,
+
+    #[clap(long, default_value_t = 8080, help = "Port to bind the server to.")]
+    port: u16,
 }
 
 #[actix_web::main]
@@ -67,7 +73,6 @@ async fn main() -> std::io::Result<()> {
         10 * 1024 * 1024,                   // buffer size (bytes)
     ));
 
-    // TODO: serve behind HTTPS (TLS termination at a proxy) or configure Rustls on HttpServer.
     HttpServer::new(move || {
         App::new()
             .app_data(scanner_service_manager.clone())
@@ -75,7 +80,7 @@ async fn main() -> std::io::Result<()> {
             .service(create_sqs_listener_job)
             .service(delete_job)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind((args.host, args.port))?
     .run()
     .await?;
 
