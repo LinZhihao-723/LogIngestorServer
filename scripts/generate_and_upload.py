@@ -20,9 +20,11 @@ messages = [
     "Backup finished."
 ]
 
+prefix = f"test-{round(time.time())}"
+
 def generate_random(n=1000, sleep_time=0.005):
     cctx = zstandard.ZstdCompressor(level=3)
-    with open("temp.clp.zstd", "wb") as raw_stream, cctx.stream_writer(raw_stream) as compressor:
+    with open(f"{prefix}.clp.zstd", "wb") as raw_stream, cctx.stream_writer(raw_stream) as compressor:
         with Serializer(compressor) as serializer:
             for _ in range(n):
                 serializer.serialize_log_event_from_msgpack_map(
@@ -46,7 +48,6 @@ if __name__ == "__main__":
     parser.add_argument("--num-files", type=int, default=1, help="Number of files to generate")
     args = parser.parse_args()
 
-    prefix = f"test-{round(time.time())}"
     print(f"Uploading to prefix: {prefix}")
     region = "us-east-2"
     s3_client = boto3.client(
@@ -60,5 +61,5 @@ if __name__ == "__main__":
         filename = f"log_{round(time.time())}.clp.zstd"
         generate_random()
         s3_key = f"{prefix}/{filename}"
-        s3_client.upload_file("temp.clp.zstd", args.s3_bucket, s3_key)
-        print(f"Uploaded temp.clp.zstd to s3://{args.s3_bucket}/{s3_key}")
+        s3_client.upload_file(f"{prefix}.clp.zstd", args.s3_bucket, s3_key)
+        print(f"Uploaded {prefix}.clp.zstd to s3://{args.s3_bucket}/{s3_key}")
