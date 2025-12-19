@@ -6,6 +6,8 @@ import random
 import time
 import argparse
 import boto3
+import json
+import requests
 
 messages = [
     "Service started.",
@@ -43,13 +45,53 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate and upload log files to S3.")
     parser.add_argument("--s3-endpoint", required=True, help="S3 endpoint URL")
     parser.add_argument("--s3-key", required=True, help="S3 credential key")
+    parser.add_argument("--region", required=False, default=None, help="S3 region")
     parser.add_argument("--s3-secret", required=True, help="S3 secret key")
     parser.add_argument("--s3-bucket", required=True, help="S3 bucket name")
     parser.add_argument("--num-files", type=int, default=1, help="Number of files to generate")
+    parser.add_argument(
+        "--submission-endpoint",
+        required=True,
+        help="Ingestion job submission endpoint"
+    )
+    parser.add_argument(
+        "--extra-submission-config",
+        required=False,
+        help="Ingestion job config (no need for key-prefix and bucket)"
+    )
     args = parser.parse_args()
 
+    clp_s3_endpoint = args.s3_endpoint
+    if clp_s3_endpoint.startswith("http://localhost:"):
+        clp_s3_endpoint = "http://host.docker.internal:" + clp_s3_endpoint.split("localhost:")[1]
+    elif clp_s3_endpoint.endswith("amazonaws.com"):
+        clp_s3_endpoint = None
+
+    ingestion_job_config = {
+        "endpoint_url": clp_s3_endpoint,
+        "bucket_name": args.s3_bucket,
+        "key_prefix": prefix,
+    }
+
+    if args.extra_submission_config:
+        extra_config = json.loads(args.extra_submission_config)
+        ingestion_job_config |= extra_config
+
+    if args.region:
+        ingestion_job_config |= {"region": args.region}
+
+    print(f"Ingestion job config: {json.dumps(ingestion_job_config)}")
+
+    try:
+        resp = requests.post(args.submission_endpoint, json=ingestion_job_config, timeout=10)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Submission failed: {e}")
+        exit(1)
+    print(f"Submission succeeded: {resp.status_code} - {resp.text}")
+
     print(f"Uploading to prefix: {prefix}")
-    region = "us-east-2"
+    region = args.region if args.region else "us-east-1"
     s3_client = boto3.client(
         's3',
         endpoint_url=args.s3_endpoint,

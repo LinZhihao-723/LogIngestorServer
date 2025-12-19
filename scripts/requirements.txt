@@ -1,3 +1,4 @@
 boto3>=1.40.36
 clp-ffi-py>=0.0.14
+requests>=2.32.5
 zstandard>=0.25.0
