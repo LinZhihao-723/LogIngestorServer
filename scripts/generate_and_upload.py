@@ -45,7 +45,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate and upload log files to S3.")
     parser.add_argument("--s3-endpoint", required=True, help="S3 endpoint URL")
     parser.add_argument("--s3-key", required=True, help="S3 credential key")
-    parser.add_argument("--region", required=False, default=None, help="S3 region")
+    parser.add_argument("--s3-region", required=False, default=None, help="S3 region")
     parser.add_argument("--s3-secret", required=True, help="S3 secret key")
     parser.add_argument("--s3-bucket", required=True, help="S3 bucket name")
     parser.add_argument("--num-files", type=int, default=1, help="Number of files to generate")
@@ -77,8 +77,8 @@ if __name__ == "__main__":
         extra_config = json.loads(args.extra_submission_config)
         ingestion_job_config |= extra_config
 
-    if args.region:
-        ingestion_job_config |= {"region": args.region}
+    if args.s3_region:
+        ingestion_job_config |= {"region": args.s3_region}
 
     print(f"Ingestion job config: {json.dumps(ingestion_job_config)}")
 
@@ -91,13 +91,13 @@ if __name__ == "__main__":
     print(f"Submission succeeded: {resp.status_code} - {resp.text}")
 
     print(f"Uploading to prefix: {prefix}")
-    region = args.region if args.region else "us-east-1"
+    region = args.s3_region if args.s3_region else "us-east-1"
     s3_client = boto3.client(
         's3',
         endpoint_url=args.s3_endpoint,
         aws_access_key_id=args.s3_key,
         aws_secret_access_key=args.s3_secret,
-        region_name=region
+        region_name=args.s3_region
     )
     for idx in range(args.num_files):
         filename = f"log_{round(time.time())}.clp.zstd"
