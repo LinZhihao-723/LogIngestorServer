@@ -24,7 +24,7 @@ messages = [
 
 prefix = f"test-{round(time.time())}"
 
-def generate_random(n=1000, sleep_time=0.005):
+def generate_random(n=10, sleep_time=0.005):
     cctx = zstandard.ZstdCompressor(level=3)
     with open(f"{prefix}.clp.zstd", "wb") as raw_stream, cctx.stream_writer(raw_stream) as compressor:
         with Serializer(compressor) as serializer:
@@ -59,7 +59,16 @@ if __name__ == "__main__":
         required=False,
         help="Ingestion job config (no need for key-prefix and bucket)"
     )
+    parser.add_argument(
+        "--prefix",
+        required=False,
+        help="S3 key prefix (added to the generated prefix)"
+    )
     args = parser.parse_args()
+
+    global prefix
+    if args.prefix:
+        prefix = f"{args.prefix}/{prefix}"
 
     clp_s3_endpoint = args.s3_endpoint
     if clp_s3_endpoint.startswith("http://localhost:"):
