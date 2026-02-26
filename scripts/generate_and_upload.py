@@ -66,7 +66,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    global prefix
     if args.prefix:
         prefix = f"{args.prefix}/{prefix}"
 
@@ -109,8 +108,7 @@ if __name__ == "__main__":
         region_name=args.s3_region
     )
     for idx in range(args.num_files):
-        filename = f"log_{round(time.time())}.clp.zstd"
-        generate_random()
+        filename = f"log_{round(time.time() * 1000 * 1000)}.clp.zstd"
         s3_key = f"{prefix}/{filename}"
-        s3_client.upload_file(f"{prefix}.clp.zstd", args.s3_bucket, s3_key)
+        s3_client.upload_file(f"sample.clp.zstd", args.s3_bucket, s3_key)
         print(f"Uploaded {prefix}.clp.zstd to s3://{args.s3_bucket}/{s3_key}")
